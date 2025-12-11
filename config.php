@@ -2,9 +2,9 @@
 // config.php
 
 // ✅ SEGURO: Se usa PDO + Prepared Statements en toda la aplicación.
-$dsn = "mysql:host=localhost;dbname=webshop;charset=utf8mb4";
-$dbUser = "root";
-$dbPass = "";
+$dsn = "mysql:host=db;dbname=webshop;charset=utf8mb4";
+$dbUser = "user";
+$dbPass = "password";
 
 // Erroreak salbuespen moduan botatzeko:
 $options = [
