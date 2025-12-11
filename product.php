@@ -2,17 +2,15 @@
 require_once 'config.php';
 require_once 'functions.php';
 
-// ❌ EJEMPLO INSEGURO — SQLi + IDOR
-// Aquí NO convertimos el parámetro a (int), se usa tal cual viene del usuario.
-// Es decir, si el alumno pone ?id=5 OR 1=1 devolverá todos los productos.
-$id = $_GET['id'] ?? '0';
+// ✅ EJEMPLO SEGURO — SQLi + IDOR
+// El ID se convierte a (int) para evitar inyección.
+$id = (int)($_GET['id'] ?? 0);
 
-// ❌ CONSULTA VULNERABLE A SQL INJECTION
-// Interpolación directa del parámetro en la query:
-$queryProduct = "SELECT * FROM products WHERE id = $id";
-
-$result = $pdo->query($queryProduct);
-$product = $result->fetch();
+// ✅ CONSULTA SEGURA
+// Se usan Prepared Statements para evitar SQLi.
+$stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
+$stmt->execute([$id]);
+$product = $stmt->fetch();
 
 // Si un alumno prueba:
 //    ?id=0 OR 1=1
@@ -27,27 +25,18 @@ if (!$product) {
     die("Producto no existe.");
 }
 
-// ❌ REVIEWS también vulnerable a SQLi
-// El mismo patrón inseguro:
-$queryReviews = "
+// ✅ REVIEWS también segura
+// Se usan Prepared Statements.
+$stmtReviews = $pdo->prepare("
     SELECT r.*, u.username 
     FROM reviews r 
     JOIN users u ON r.user_id = u.id
-    WHERE r.product_id = $id
+    WHERE r.product_id = ?
     ORDER BY r.created_at DESC
-";
+");
+$stmtReviews->execute([$id]);
+$reviews = $stmtReviews->fetchAll();
 
-$resultReviews = $pdo->query($queryReviews);
-$reviews = $resultReviews->fetchAll();
-
-// Comentarios para usar en clase:
-//
-// - “products?id=1” funciona normal.
-// - “products?id=1 OR 1=1” devuelve TODOS los reviews.
-// - “products?id=9999 UNION SELECT …” puede demostrar UNION-based SQLi.
-//
-// También puedes explicar aquí IDOR (Insecure Direct Object Reference):
-// Cualquiera puede manipular el ID y acceder a productos no permitidos.
 
 
 // Enviar review
@@ -62,17 +51,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && current_user_id()) {
 
         // Manejar archivo subido si existe
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = __DIR__ . '/uploads/';
-            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-            $filename = basename($_FILES['image']['name']);
-            $filename = time() . '_' . preg_replace("/[^a-zA-Z0-9\._-]/", "_", $filename);
-            $targetPath = $uploadDir . $filename;
+            $fileInfo = pathinfo($_FILES['image']['name']);
+            $extension = strtolower($fileInfo['extension']);
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo->file($_FILES['image']['tmp_name']);
 
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $targetPath)) {
-                $uploadedFilePath = 'uploads/' . $filename;
+            if (!in_array($extension, $allowedExtensions) || !in_array($mimeType, $allowedMimes)) {
+                $errors[] = "Error: Only image files are allowed.";
             } else {
-                $errors[] = "Error al subir el archivo.";
+                $uploadDir = __DIR__ . '/uploads/';
+                if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+                // Only if validation passes, move the file
+                $filename = uniqid('img_', true) . '.' . $extension;
+                $targetPath = $uploadDir . $filename;
+
+                if (move_uploaded_file($_FILES['image']['tmp_name'], $targetPath)) {
+                    $uploadedFilePath = 'uploads/' . $filename;
+                } else {
+                    $errors[] = "Error al subir el archivo.";
+                }
             }
         }
 

@@ -16,23 +16,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "Username, email y password son obligatorios.";
     } else {
 
-        $queryCheck = "
-            SELECT id FROM users 
-            WHERE username = '$username' 
-               OR email = '$email'
-        ";
-        $result = $pdo->query($queryCheck);
+        // ✅ CONSULTA SEGURA
+        // Se usan Prepared Statements para evitar SQLi.
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
+        $stmt->execute([$username, $email]);
 
-        if ($result->fetch()) {
+        if ($stmt->fetch()) {
             $errors[] = "El usuario o email ya están en uso.";
         } else {
+            // ✅ SEGURO: Se hashea la contraseña
+            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
-            $queryInsert = "
+            // ✅ CONSULTA SEGURA
+            $stmt = $pdo->prepare("
                 INSERT INTO users (username, email, password_hash, address, phone)
-                VALUES ('$username', '$email', '$password', '$address', '$phone')
-            ";
-
-            $pdo->exec($queryInsert);
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$username, $email, $passwordHash, $address, $phone]);
 
             header("Location: login.php");
             exit;

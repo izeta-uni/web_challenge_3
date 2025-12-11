@@ -1,9 +1,7 @@
 <?php
 // config.php
 
-// OHIKO AKATSA (SQLi): mysqli_connect eta query kateatuekin erabiltzea.
-// Hemen PDO + prepared statements erabiliko dugu beti.
-
+// ✅ SEGURO: Se usa PDO + Prepared Statements en toda la aplicación.
 $dsn = "mysql:host=localhost;dbname=webshop;charset=utf8mb4";
 $dbUser = "root";
 $dbPass = "";
@@ -20,6 +18,14 @@ try {
     die("DB errorea: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));
 }
 
+// ✅ SEGURO: Flags para cookies seguras
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'secure' => true,      // Solo enviar por HTTPS
+    'httponly' => true,    // Prevenir acceso por JavaScript (XSS)
+    'samesite' => 'Strict' // Prevenir CSRF
+]);
 session_start();
 
 // Erabiltzailearen informazioa lortzeko helper txiki bat:

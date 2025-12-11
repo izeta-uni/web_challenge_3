@@ -9,11 +9,12 @@ if ($q !== '') {
     $sql = "
         SELECT id, name, price, image_path
         FROM products
-        WHERE name LIKE '%$q%' OR description LIKE '%$q%'
+        WHERE name LIKE :query OR description LIKE :query
         ORDER BY id DESC
     ";
-    $result = $pdo->query($sql);
-    $products = $result->fetchAll();
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(['query' => "%" . $q . "%"]);
+    $products = $stmt->fetchAll();
 }
 ?>
 <?php include 'header.php'; ?>
@@ -21,7 +22,7 @@ if ($q !== '') {
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <div class="container mt-4">
-    <h2 class="mb-4">Search Tool (Vulnerable)</h2>
+    <h2 class="mb-4">Search Tool</h2>
 
     <form method="get" class="row g-2 mb-4">
         <div class="col-md-8">
@@ -35,8 +36,8 @@ if ($q !== '') {
     </form>
 
     <?php if ($q !== ''): ?>
-        <!-- Vulnerable: el texto de búsqueda no se escapa -->
-        <h4 class="mb-3">Results for "<?php echo $q; ?>":</h4>
+        <!-- Seguro: el texto de búsqueda se escapa con e() -->
+        <h4 class="mb-3">Results for "<?php echo e($q); ?>":</h4>
         <?php if ($products): ?>
             <div class="row g-4">
                 <?php foreach ($products as $p): ?>
