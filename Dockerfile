@@ -7,8 +7,8 @@ RUN docker-php-ext-install mysqli pdo pdo_mysql && docker-php-ext-enable mysqli 
 RUN a2enmod ssl && a2ensite default-ssl
 
 # 2. Copiamos tus certificados al lugar donde Apache los espera
-COPY web.crt /etc/ssl/certs/ssl-cert-snakeoil.pem
-COPY web.key /etc/ssl/private/ssl-cert-snakeoil.key
+COPY certs/web.crt /etc/ssl/certs/ssl-cert-snakeoil.pem
+COPY certs/web.key /etc/ssl/private/ssl-cert-snakeoil.key
 
 # Copiamos la web
 COPY . /var/www/html/
