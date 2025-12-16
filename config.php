@@ -15,7 +15,12 @@ $options = [
 try {
     $pdo = new PDO($dsn, $dbUser, $dbPass, $options);
 } catch (PDOException $e) {
-    die("DB errorea: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));
+    // Escribe el error en el log del servidor (ver con 'docker compose logs web')
+    error_log("Error conexión DB: " . $e->getMessage());
+    
+    // Muestra un mensaje genérico y seguro
+    http_response_code(500);
+    die("Error interno del servidor. Por favor, inténtelo más tarde.");
 }
 
 // ✅ SEGURO: Flags para cookies seguras
